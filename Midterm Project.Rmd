@@ -1,0 +1,172 @@
+---
+title: "Shot Plot Midterm Project"
+author: "Peter Weirich"
+date: "3/30/2022"
+output:
+  word_document: default
+  html_document: default
+  github_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+## This code block gathers the data from the nbastatR package for the Dallas Maverick's shot data. 23 different data frames are created based on the years between 2000 and 2022. The 'VROOM' command allows for fast reading of delimited files and must be increased due to a system overload from the limited speed from the connection buffer.
+
+library(nbastatR)
+library(tidyverse)
+library(hexbin)
+library(ggpubr)
+library(jpeg)
+library(grid)
+library(RColorBrewer)
+library(densityvis)
+library(ggalt)
+library(ggforce)
+library(concaveman)
+library(ggpointdensity)
+library(gganimate)
+library(gifski)
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+library(png)
+library(gifski)
+library(jpeg)
+library(RCurl)
+library(ggthemes)
+library(nbastatR)
+
+shot00 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2000)
+shot01 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2001)
+shot02 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2002)
+shot03 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2003)
+shot04 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2004)
+shot05 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2005)
+shot06 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2006)
+shot07 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2007)
+shot08 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2008)
+shot09 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2009)
+shot10 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2010)
+shot11 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2011)
+shot12 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2012)
+shot13 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2013)
+shot14 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2014)
+shot15 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2015)
+shot16 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2016)
+shot17 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2017)
+shot18 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2018)
+shot19 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2019)
+shot20 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2020)
+shot21 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2021)
+shot22 <- Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2) %>% nbastatR::teams_shots(teams = "Dallas Mavericks", seasons = 2022)
+```
+
+
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+## In this code block and combining the 23 years of shot data via the bind_rows command. After that, I am selecting the relevant columns from this data set and checking for any NA values in the data set.
+shotgroup <- bind_rows(shot00, shot01, shot02, shot03, shot04, shot05, shot06, shot07, shot08, shot09, shot10, shot11, shot12, shot13, shot14, shot15, shot16, shot17, shot18, shot19, shot20, shot21, shot22) %>% select(., yearSeason, typeEvent, typeAction, typeShot, slugTeamHome, slugTeamAway, numberPeriod, minutesRemaining, zoneBasic, nameZone, slugZone, zoneRange, locationX, locationY, secondsRemaining, distanceShot, isShotAttempted, isShotMade) %>% na.omit(shotgroup)
+```
+
+
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+## in this data set, I am first downloading a png file for the background of my plot which shows a basketball half court. This png file is read using the readPNG() command from the RCurl package. Also, I am loading the library of various packages to prevent issues when knitting the rmd file.
+
+## Next, I am creating a plot using the functions found in the ggplot2 package. Specifically, I create a ggplot using the previously created shotgroup data and specify the x coordinate with the variable (column) locationX and the y coordinate with the variable (column) locationY. These two variables link to the position of a shot taken (on a basketball court) in inches. I also initialize the variable Z (isShotMade) which will be used in a later function.
+
+## After that, I add the previously created half court png image as a background to the plot. This is accomplished using the annotation_custom() command which is from ggplot2. This function allows for the addition of a grob to a specified region of a plot. A grob is any grid graphical object. In my case, I am using it as background object (the png). Using the rasterGrob command more specifications can be made within the annotation_custom command (from the grid package). Specifically, the img2 is selected, the width and height are set equal to unit(1, "npc") which creates a unit object oriented with normalized parent coordinates (0, 0). Lastly, min and max x and y coordinates are specified to cover the entire plot.
+
+## The next argument initializes the hex plot itself with stat_summary_hex(). the transparency is specified via the alpha argument and previous initialized z variable is used in a function. Specifically, each bin is calculated based on the bin (hex) data as a proportion in relation to if the shot is made. If more shots are made in that hex, the proportion will be closer to 1 and vise versa. After that, the scale_color_manual() argument is stated to specify the two colors ("#00538C" and "#B8C4CA") in relation to if the shot is made or not. 
+
+## Via trial and error, the data is correctly positioned with the background court via the xlim() and ylim() arguments for the x and y position respectively. The coord_fixed command is also used to ensure that the proportionality of the x axis matches the y axis. The labs function is used in addition to 'title = ', to specify the title of the plot. Since the plot is animated later, {frame_time} is used to specify Year (the variable used to differentiate frames). Also within labs, the x and y axis are given titles. 
+
+## Next, the guides() argument is used to 'guide' the specifications of the legend with the guide_legend argument in relation to fill. This will correlate the argument stated to the previously used 'fill' command which aligns with shots made. A title is specified within this argument. Finally a theme is chosen (from the ggthemes package) and a second guides() argument is raised to hide the alpha legend.
+
+## the next argument takes the completed plot (plot1) and combines it with the transition_time() argument based on the yearSeason variable. This distinguishes each frame of the animation based on year. Also, the ease_aes() argument is noted to distinguish how each value will change to another via 'tweening'. In this case, the values are related linearly.
+
+
+s = "https://miro.medium.com/max/1400/1*2QjYg-iJ54sT1ywAoVxtaw.png"
+img2 <- readPNG(getURLContent(s))
+
+
+plot1 <- ggplot(shotgroup, aes(x= locationX, y= locationY, z = isShotMade)) + annotation_custom(rasterGrob(img2, width = unit(1, "npc"), height = unit(1, "npc")), -Inf, Inf, -Inf, Inf) + stat_summary_hex(aes(alpha=0.75), fun = function(z) { sum(z) / length(z) }) + scale_color_manual(values = c("#00538C", "#B8C4CA")) + xlim(-250, 250) + ylim(-50, 420) + coord_fixed() + labs(title = "Dallas Maverick's {frame_time} Season Shots", x = 'X Position (inches)', y = 'Y Position (inches)') + guides(fill=guide_legend(title = "Proportion Made")) + theme_few() + guides(alpha = FALSE)
+
+anim <- plot1 + transition_time(yearSeason) + ease_aes(default = "linear")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## In this code block, the previously created 'anim' is fully animated into a gif and more specifications are noted. Specifically, within the animate() function, the height of the animation is set to 500, the width is set to 800, and the number of frames is set equal to the number of years (23). Also, the duration (seconds) is set to equal 2 seconds per frame.
+
+animate(anim, height = 500, width = 800, nframes = 23, duration = 46)
+```
+
+
++ Dallas Mavericks shot data spanning from 2000 to 2022.
++ Consistently, shots were missed beyond the 3 point line throughout all 23 years.\
++ In the early 2000s, shots are consistently attempted throughout all portions of the inner court.\
++ Starting in 2019, the Dallas Mavericks attempted and made less shots in between the 3 point line and the center court.\
++ 2005 and 2010 were partially strong years for the Dallas Mavericks, in relation to shots made vs attempted.\
++ The fewer shots attempted in a region (on average), the increased likelihood that shots were missed surrounding that region.\
++ The Dallas mavericks consistently made shops in the region closest to the hoop.\
+
+1. The proportionality of shots missed vs shots passed the 3 pointer line is a consistent occurrence. In any given year, for example year 2000, an inconstant number and position of shots are present and are commonly misses. In 2000, every hex not 'attached' to the 3 pointer line was missed / had a grey hue. This means, roughly only 25% of the shots attempted were made in that area. Outlier, 'single' hexes are present scattered throughout the years. For example, the 2013 shot plot shows a dark blue point in the eastern portion of the outer court, while all other points were grey. Variation is to be expected with any trend. 
+
+2. The shot plots from 2000 to 2018 all roughly have a filled hex diagram for in the inner court. Slight exceptions in 2011 and 2012 indicate a slight propensity to not shoot with in the inner back left court given the white sections indicating a lack of data or pattern within a year. In 2000 specifically, ignoring some 'noise' within the inner court, a continuous wall of 75% made shots is present. This suggests that in that year, the Dallas Mavericks practiced and maintained a standard of success within the inner court. This trend is further viewed in later years. A contrary trend is presented in 2015. Specifically in the front left and back right, there are two 'voids' of white where shots are not attempted. A logical inference would be that the Dallas Mavericks were not on their 'A game' that year in comparison to prior years.
+
+3. A quick look at the 2019 through 2022 to shot plots indicate that a visible 'n' shape is created around the outer court and between the inner court. This trend is most notable from 2019 to 2021, but slightly decreases in 2022. In the 2019 plot, the holes are most noticeable and wide on the left and right 'front' section of the inner court. The n shape in the back right section are surrounded by lighter hexes while other white sections are, on average, surrounded by darker hexes. A possible explanation for this pattern is an intentional shift in the Dallas Maverick's strategy  when positioning a shot. In the 2019 season, the back right section of the court likely had a higher success rate due to player preference, or hand positions. However, other variables are likely to be at play to why this event occurred. Overall, the propensity of the white sections to be surrounded by darker or lighter hexes instead of the 'middle' blue suggests that skill played a larger roll than strategy when attempting shots from the 'n' area in recent years.
+
+4. In the 2005 shot plot, excluding the darker shaded region in the back left of the inner court, it is noticeable that a large percentage of the shots attempted, were made. If a difference of the lighter and darker hexes was conducted, more regions would be lighter or it would be a sum zero. This means that 2005 was a very thorough year for the Mavericks. As previously mentioned, the filled inner region likely means that the the Maverick's had a well rounded understanding of the court and practiced consistently in all areas. 2010 was also a strong year for the Mavericks. They had some issues in the back right of the inner court, but vast majority of the data suggests that more shots were made than missed. As present in all years, the shots attempted passed the 3 pointer line were missed consistantly. In this year, the 'detached', 'bell-buzzer' shots were near 90%+ missed. This does not take away from the strength of that year, due to the high proportion of blue in comparison to black over the enitre inner court. 
+
+5. The more that shots are not attempted in an area, the increased likelihood that shots, near there, will be misses. Good examples of this phenomena occur in years 2009, 2014, 2016, and 2021. In 09, near (-200, 100) a large clump of darker hexes are present in relation to a minor hole in the plot. To a lesser degree, this also occurs on the other side of the plot. The holes form a slight outline similar to the 'n', but not with an intentional flair. A generalization to make would be that this boundary of the inner court requires more skill to make those shots, on average. 2014 and 2016 continue this trend in the same regions. Consistently, a hole will indicate that a more 'speratic' distribution of if the shot is made or not. There are some lighter regions surrounding these regions on multiple years, but a decrease in accuracy is a more likely cause due to its higher rate of occurrence and logical reasonings included. 2021 suggests the implementation of a strategy. The 'n' shape is beyond the level of a trend, but more so an intentional occurrence. Commonly on this plot, are 'bridges of error'. Examples occur at roughly (0, 200), (200, 50), (-200, 100), and (-80, 200). An intentional shift in how the Dallas Maverick's trained is possible due to certain regions having a larger emphasis than others. 
+
+6. Any year chosen shows this trend. Specifically, the region surrounding the hoop itself, (the circle) is the same color consistently. In various years such as 2001 and 2021 it is common for shots attempted to behind the hope to have a darker shaded hex. The logic behind this phenomena follows the logic of the 'bell buzzer' shots thrown from far out. The location of the shot impacts the probability of it being made, in addition to the circumstances surrounding how the shot was made. For instance, behind the hoop forces an awkward shot angle for the player. Logically, shots attempted from this position are 'forced' shots by a strong defense from the opposing team. The out of bounds line also likely plays a roll. On the other hand, the position and angle of shots attempted right around the hoop have a high probability of succeeding. The angle, distance, and average player height are all possible indicators of which position is easiest to make. The data matches this reasoning. In 2003, in the front right section of the circle hoop, a lighter region of hexes is present. In all other years, the hoop region stays a consistent blue color. While less lighter hexes (increased proportion of shots made) are present in this data set around the hoop, the consistency tells a more important story. 
+
+
+
+
+```{r echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+## In this code block, a new variable is being analyzed. Specifically, the team_details() arguments function is used (from the nbastatR package) with all_teams set equal to true. After that, using brackets, the 2nd column, 5th row is selected. This data set analyzes the team awards divisions for all nba teams.
+
+team1 <- nbastatR::teams_details(all_teams = T)
+team2 <- team1[[2]][[5]]
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## In this code block, the previously created team2 is subseted based on the value "Dallas Mavericks" found in the column 'nameTeam'. Next, a ggplot is created using the original dataset (team2) and the x and y value are set equal to yearSeason and nameTeam in the aes() section. Then, a geom_point() is created using the data from the original team2 and the x and y axis stay the same. The stat = identity is used to represent the bars of the data based on the identity of the values, rather instead of 'bin'.
+
+## Next, a geom_line is created using the modified data set (team4) and the color (in the aes() argument) is used in relation to the nameTeam variable. In addition, the legend is hidden using the show.legend argument. Follow, the scale_color_manual() argument is used to specify the color of the geom_line() line. The goal of this plot is to show the distribution of division champs based on year. The geom_line argument is used as a highlight for the the Dallas mavericks row.
+
+## The scale_x_continuous argument is used to scale the x value with further specifications. The breaks argument is used to differentiate and customize the x (or y) axis points. In this case, the breaks command is used with the pretty_breaks argument found in the 'scales' package. This is a modified version of the break command which caters more toward dates/time. the number of breaks in the x axis was set equal to 20. Next, using the ggtitle() command, the title of the graph is specified (with a /n in the middle for to lines) and using the xlab and ylab commands, the x and y axis are labeled. Next, the theme argument is initialized which is used to customize non data aspects of a plot. The axis.text.x argument specifies that the x axis text data is in question. Next, the angle argument is used to shift the angle of the text and the vjust is used to move the elements vertically while the hjust argument does the same horizontally.
+
+team4 <- team2 %>% subset(nameTeam == "Dallas Mavericks", )
+
+ggplot(team2, aes(x = yearSeason, y = nameTeam )) + geom_point(data = team2, aes(x = yearSeason, y = nameTeam), stat = "identity") + geom_line(data = team4, aes(color = nameTeam), show.legend = FALSE) + scale_color_manual(values = "#FF0000") + scale_x_continuous(breaks = scales::pretty_breaks(n = 20)) + ggtitle("Dallas Mavericks Division \n Champion Timeframe") + xlab("Year") + ylab("Team Name") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+## In this code block, a second plot is created using the previous team2 data set. First, the team2 dataset is reformed using the count() command to find the count of each name on the list. After that, a ggplot is initialed using the new team3 dataset. within the aes(), the x value is reordered using the reorder() command in relation to n (greatest to least from top to bottom) directed towards the nameTeam variable, the y value is set equal to the count. The bar graph is then filled using 'fill = ' with the nameTeam variable. Later, this argument is correlated to specific colors. 
+
+## Next, a geom_bar is created having the stat = identity function used in a similar manner to the previous plot. Also, the show.legend argument is raised to hide the legend. After that, the coord_flip() argument is included to flip the x and y values on the bar plot. Then, the scale_fill_manual() function is used to map the colors to each bar. In this case, the goal was to have the Dallas mavericks one color, while all the others are a second color. The Dallas Mavericks team colors as seen in the values = c() section of the function. 
+
+## The ggtitle, xlab, and ylab arguments are raised to specify the x and y labels, and title. The theme used was tufte from the ggthemes package. To help prevent overlap in the y-axis, the scale_y_discrete argument is used in conjunction with the guide = guide_axis argument. Within this argument, the check.overlap = TRUE is noted to prevent overlap. Also, the wrap_format argument is used from the scales package in the case of longer labels from the team names. The range of the x-axis is added using the ylim argument from 0 to 35. Finally, a scale_y_continuous argument is raised with pretty_breaks to customize the distance between each break in the x axis.
+
+
+team3 <- team2 %>% count(nameTeam)
+ggplot(team3, aes(x = reorder(nameTeam, n), y = n, fill = nameTeam)) + geom_bar(stat = "identity", show.legend = FALSE) + coord_flip() + scale_fill_manual(values = c("#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#00538C", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA", "#B8C4CA")) + ggtitle("Dallas Mavericks vs Leauge Divison Champ Count") + xlab("Team Name") + ylab("Times Division Champion (Count)") + theme_tufte() + scale_y_discrete(guide = guide_axis(check.overlap = TRUE), labels = scales::wrap_format(100)) + ylim(0, 35) + scale_y_continuous(breaks = scales::pretty_breaks(n = 14))
+
+
+```
+
+1. The first graph created notes the timing of the when the Dallas Mavericks won the division championship in relation to the all other teams. A line graph is used to distinguish which line correlates to the Dallas Mavericks. This graph is useful when trying to pinpoint the frequency of wins for the various teams and when they exactly won last. 
+
+2. As a corollary to the first graph, the second graph uses the count argument to look at the pure count of wins using a bar graph. The time since a team last won and how often a team won can paint a picture to the viewer of the consistency and quality of a team in relation to everybody else. Specifically from these two graphs, it is possible to note that the Dallas Mavericks have won four league division championships, they are near the bottom fo the league in terms of win count, and they just won a championship for the first time in 11 years in 2021.
+
+
